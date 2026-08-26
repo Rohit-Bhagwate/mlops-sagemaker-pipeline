@@ -16,5 +16,15 @@ pipeline {
                 sh 'pwd'
             }
         }
+
+        stage('Create Python Environment') {
+            steps {
+                sh '''
+                    python3 -m venv .venv
+                    .venv/bin/python --version
+                    .venv/bin/pip --version
+                '''
+            }
+        }
     }
 }
