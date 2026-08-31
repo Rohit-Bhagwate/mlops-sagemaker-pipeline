@@ -1,5 +1,12 @@
+```groovy
 pipeline {
     agent any
+
+    environment {
+        // AWS region is controlled by the Jenkins environment
+        AWS_DEFAULT_REGION = 'ap-south-1'
+        AWS_REGION = 'ap-south-1'
+    }
 
     stages {
 
@@ -11,9 +18,14 @@ pipeline {
 
         stage('Python Verification') {
             steps {
-                sh 'python3 --version'
-                sh 'whoami'
-                sh 'pwd'
+                sh '''
+                    python3 --version
+                    whoami
+                    pwd
+
+                    echo "AWS Region:"
+                    echo $AWS_DEFAULT_REGION
+                '''
             }
         }
 
@@ -46,6 +58,18 @@ pipeline {
             }
         }
 
+        stage('Verify AWS Access') {
+            steps {
+                sh '''
+                    echo "Testing AWS identity..."
+                    aws sts get-caller-identity
+
+                    echo "Testing AWS region..."
+                    aws configure get region || true
+                '''
+            }
+        }
+
         stage('Verify Project Files') {
             steps {
                 sh '''
@@ -60,9 +84,6 @@ pipeline {
 
                     echo "Checking inference code:"
                     test -f training/inference_code/inference.py
-
-                    echo "Checking SageMaker model script:"
-                    test -f training/sagemaker_model.py
 
                     echo "All required project files are present."
                 '''
@@ -81,7 +102,7 @@ pipeline {
             steps {
                 script {
                     env.MODEL_ARTIFACT = readFile(
-                        file: 'model_artifact.txt'
+                        'model_artifact.txt'
                     ).trim()
 
                     echo "Model artifact: ${env.MODEL_ARTIFACT}"
@@ -92,9 +113,12 @@ pipeline {
         stage('Build SageMaker Model') {
             steps {
                 sh '''
+                    echo "Building SageMaker model..."
+
                     .venv/bin/python training/sagemaker_model.py
                 '''
             }
         }
     }
 }
+```
