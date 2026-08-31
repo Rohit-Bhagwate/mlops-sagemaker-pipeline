@@ -34,5 +34,44 @@ pipeline {
                 '''
             }
         }
+
+        stage('Verify Dependencies') {
+            steps {
+                sh '''
+                    .venv/bin/python -c "import boto3; print('boto3:', boto3.__version__)"
+                    .venv/bin/python -c "import sagemaker; print('SageMaker SDK imported successfully')"
+                    .venv/bin/python -c "import sklearn; print('scikit-learn:', sklearn.__version__)"
+                    .venv/bin/python -c "import joblib; print('joblib:', joblib.__version__)"
+                '''
+            }
+        }
+
+        stage('Verify Project Files') {
+            steps {
+                sh '''
+                    echo "Project files:"
+                    find training src -maxdepth 3 -type f | sort
+
+                    echo "Checking SageMaker training script:"
+                    test -f training/sagemaker_train.py
+
+                    echo "Checking test input JSON:"
+                    test -f training/test_input.json
+
+                    echo "Checking inference code:"
+                    test -f training/inference_code/inference.py
+
+                    echo "All required project files are present."
+                '''
+            }
+        }
+
+        stage('Run SageMaker Training') {
+            steps {
+                sh '''
+                    .venv/bin/python training/sagemaker_train.py
+                '''
+            }
+        }
     }
 }
