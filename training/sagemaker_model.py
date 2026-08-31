@@ -54,11 +54,14 @@ image = image_uris.retrieve(
 print("Inference image:")
 print(image)
 
+source_dir = os.path.join(
+    os.path.dirname(os.path.abspath(__file__)),
+    "inference_code"
+)
 source_code = SourceCode(
-    source_dir="inference_code",
+    source_dir=source_dir,
     entry_script="inference.py"
 )
-
 # --------------------------------------------------
 # Build SageMaker Model
 # --------------------------------------------------
