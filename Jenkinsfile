@@ -91,5 +91,13 @@ pipeline {
                 }
             }
         }
+
+        stage('Create SageMaker Model') {
+            steps {
+                sh '''
+                    .venv/bin/python training/sagemaker_model.py
+                '''
+            }
+        }
     }
 }
