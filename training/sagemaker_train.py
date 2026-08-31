@@ -235,7 +235,10 @@ print(model_artifact)
 
 
 # Save artifact path for the next Jenkins stage.
-artifact_file = "model_artifact.txt"
+artifact_file = os.path.join(
+    os.getcwd(),
+    "model_artifact.txt"
+)
 
 with open(artifact_file, "w") as f:
     f.write(model_artifact)
