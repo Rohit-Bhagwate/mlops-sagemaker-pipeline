@@ -30,7 +30,7 @@ INSTANCE_TYPE = "ml.m5.large"
 # --------------------------------------------------
 
 boto_session = boto3.Session(
-    profile_name="mlops-engineer",
+    #profile_name="mlops-engineer",
     region_name=REGION
 )
 
