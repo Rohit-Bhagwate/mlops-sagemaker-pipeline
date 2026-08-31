@@ -9,7 +9,7 @@ from sagemaker.core import image_uris
 # Configuration
 # --------------------------------------------------
 
-REGION = "ap-south-1"
+REGION = os.getenv("AWS_DEFAULT_REGION")
 
 ROLE = "arn:aws:iam::419022575435:role/telecom-churn-sagemaker-role"
 
