@@ -61,6 +61,9 @@ pipeline {
                     echo "Checking inference code:"
                     test -f training/inference_code/inference.py
 
+                    echo "Checking SageMaker model script:"
+                    test -f training/sagemaker_model.py
+
                     echo "All required project files are present."
                 '''
             }
@@ -77,25 +80,18 @@ pipeline {
         stage('Read Model Artifact') {
             steps {
                 script {
-                    def modelArtifact = readFile(
+                    env.MODEL_ARTIFACT = readFile(
                         file: 'model_artifact.txt'
                     ).trim()
-
-                    if (!modelArtifact) {
-                        error('Model artifact file is empty.')
-                    }
-
-                    env.MODEL_ARTIFACT = modelArtifact
 
                     echo "Model artifact: ${env.MODEL_ARTIFACT}"
                 }
             }
         }
 
-        stage('Create SageMaker Model') {
+        stage('Build SageMaker Model') {
             steps {
                 sh '''
-                    export AWS_DEFAULT_REGION=ap-south-1
                     .venv/bin/python training/sagemaker_model.py
                 '''
             }
