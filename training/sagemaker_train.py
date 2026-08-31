@@ -40,7 +40,8 @@ FRAMEWORK_VERSION = "1.4-2"
 INSTANCE_TYPE = "ml.m5.large"
 
 ENTRY_POINT = "train.py"
-SOURCE_DIR = "sagemaker_source"
+#SOURCE_DIR = "sagemaker_source"
+SOURCE_DIR = "training/sagemaker_source"
 
 
 # ============================================================
