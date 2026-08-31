@@ -95,6 +95,7 @@ pipeline {
         stage('Create SageMaker Model') {
             steps {
                 sh '''
+                    export AWS_DEFAULT_REGION=ap-south-1
                     .venv/bin/python training/sagemaker_model.py
                 '''
             }
