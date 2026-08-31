@@ -23,7 +23,7 @@ logging.basicConfig(
 # CONFIGURATION
 # ============================================================
 
-PROFILE_NAME = "mlops-engineer"
+#PROFILE_NAME = "mlops-engineer"
 REGION = "ap-south-1"
 
 ROLE_ARN = (
@@ -106,12 +106,12 @@ ModelTrainer._prepare_train_script = _prepare_train_script_lf
 # ============================================================
 
 boto_session = boto3.Session(
-    profile_name=PROFILE_NAME,
+    #profile_name=PROFILE_NAME,
     region_name=REGION
 )
 
 print("AWS Region:", boto_session.region_name)
-print("AWS Profile:", PROFILE_NAME)
+#print("AWS Profile:", PROFILE_NAME)
 
 
 # ============================================================
