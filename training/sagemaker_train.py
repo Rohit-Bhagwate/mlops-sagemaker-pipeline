@@ -23,7 +23,6 @@ logging.basicConfig(
 # CONFIGURATION
 # ============================================================
 
-#PROFILE_NAME = "mlops-engineer"
 REGION = "ap-south-1"
 
 ROLE_ARN = (
@@ -40,24 +39,11 @@ FRAMEWORK_VERSION = "1.4-2"
 INSTANCE_TYPE = "ml.m5.large"
 
 ENTRY_POINT = "train.py"
-#SOURCE_DIR = "sagemaker_source"
 SOURCE_DIR = "training/sagemaker_source"
 
 
 # ============================================================
 # FIX FOR WINDOWS CRLF IN SDK-GENERATED sm_train.sh
-# ============================================================
-#
-# SageMaker SDK ModelTrainer generates sm_train.sh using:
-#
-#     open(..., "w")
-#
-# On Windows this produces CRLF line endings.
-# SageMaker training containers run Linux/bash and require LF.
-#
-# We keep the ModelTrainer architecture exactly the same and
-# normalize ONLY the generated sm_train.sh before the SDK
-# packages/uploads the sm_drivers directory.
 # ============================================================
 
 _original_prepare_train_script = ModelTrainer._prepare_train_script
@@ -77,19 +63,21 @@ def _prepare_train_script_lf(
         distributed
     )
 
-    # The SDK-generated training driver.
+    # Path to SDK-generated training driver.
     train_script_path = os.path.join(
         tmp_dir.name,
         "sm_train.sh"
     )
 
-    # Convert Windows CRLF/CR to Unix LF.
+    # Read generated file.
     with open(train_script_path, "rb") as f:
         content = f.read()
 
+    # Convert CRLF/CR to Unix LF.
     content = content.replace(b"\r\n", b"\n")
     content = content.replace(b"\r", b"\n")
 
+    # Write normalized file.
     with open(train_script_path, "wb") as f:
         f.write(content)
 
@@ -98,21 +86,29 @@ def _prepare_train_script_lf(
     )
 
 
-# Apply the patch to this Python process only.
+# Apply patch only to this Python process.
 ModelTrainer._prepare_train_script = _prepare_train_script_lf
 
 
 # ============================================================
 # 1. CREATE BOTO3 SESSION
 # ============================================================
+#
+# IMPORTANT:
+# No profile_name is used here.
+#
+# Jenkins EC2 obtains AWS credentials automatically from:
+#
+#     mlops-jenkins-ec2-role
+#
+# ============================================================
 
 boto_session = boto3.Session(
-    #profile_name=PROFILE_NAME,
     region_name=REGION
 )
 
 print("AWS Region:", boto_session.region_name)
-#print("AWS Profile:", PROFILE_NAME)
+print("AWS credentials obtained from EC2 IAM role")
 
 
 # ============================================================
@@ -213,6 +209,38 @@ trainer.train(
 
 print("Training job completed successfully!")
 
-if trainer._latest_training_job is not None:
-    print("Training job details:")
-    print(trainer._latest_training_job)
+
+# ============================================================
+# 10. SAVE MODEL ARTIFACT PATH
+# ============================================================
+
+if trainer._latest_training_job is None:
+    raise RuntimeError(
+        "Training completed but no training job details were found."
+    )
+
+
+training_job = trainer._latest_training_job
+
+print("Training job details:")
+print(training_job)
+
+
+model_artifact = (
+    training_job.model_artifacts.s3_model_artifacts
+)
+
+print("Model artifact:")
+print(model_artifact)
+
+
+# Save artifact path for the next Jenkins stage.
+artifact_file = "model_artifact.txt"
+
+with open(artifact_file, "w") as f:
+    f.write(model_artifact)
+
+print(
+    f"Model artifact path saved to {artifact_file}"
+)
+
