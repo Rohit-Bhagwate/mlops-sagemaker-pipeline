@@ -73,5 +73,23 @@ pipeline {
                 '''
             }
         }
+
+        stage('Read Model Artifact') {
+            steps {
+                script {
+                    def modelArtifact = readFile(
+                        file: 'model_artifact.txt'
+                    ).trim()
+
+                    if (!modelArtifact) {
+                        error('Model artifact file is empty.')
+                    }
+
+                    env.MODEL_ARTIFACT = modelArtifact
+
+                    echo "Model artifact: ${env.MODEL_ARTIFACT}"
+                }
+            }
+        }
     }
 }
