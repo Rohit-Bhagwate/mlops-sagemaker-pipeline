@@ -80,6 +80,9 @@ pipeline {
                     echo "Checking Endpoint Configuration script:"
                     test -f training/sagemaker_endpoint_config.py
 
+                    echo "Checking Endpoint script:"
+                    test -f training/sagemaker_endpoint.py
+
                     echo "All required project files are present."
                 '''
             }
@@ -169,6 +172,37 @@ pipeline {
 
                     MODEL_NAME="$MODEL_NAME" \
                     .venv/bin/python training/sagemaker_endpoint_config.py
+                '''
+            }
+        }
+
+        stage('Read Endpoint Configuration Name') {
+            steps {
+                script {
+                    def endpointConfigName = readFile(
+                        file: 'endpoint_config_name.txt'
+                    ).trim()
+
+                    if (!endpointConfigName) {
+                        error 'endpoint_config_name.txt is empty.'
+                    }
+
+                    echo "SageMaker Endpoint Configuration Name:"
+                    echo endpointConfigName
+
+                    env.ENDPOINT_CONFIG_NAME = endpointConfigName
+                }
+            }
+        }
+
+        stage('Create or Update SageMaker Endpoint') {
+            steps {
+                sh '''
+                    echo "AWS Region: $AWS_DEFAULT_REGION"
+                    echo "Endpoint Configuration Name: $ENDPOINT_CONFIG_NAME"
+
+                    ENDPOINT_CONFIG_NAME="$ENDPOINT_CONFIG_NAME" \
+                    .venv/bin/python training/sagemaker_endpoint.py
                 '''
             }
         }
