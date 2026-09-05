@@ -77,6 +77,9 @@ pipeline {
                     echo "Checking SageMaker model script:"
                     test -f training/sagemaker_model.py
 
+                    echo "Checking Endpoint Configuration script:"
+                    test -f training/sagemaker_endpoint_config.py
+
                     echo "All required project files are present."
                 '''
             }
@@ -97,7 +100,8 @@ pipeline {
                         file: 'model_artifact.txt'
                     ).trim()
 
-                    echo "Model artifact: ${artifact}"
+                    echo "Model artifact:"
+                    echo artifact
 
                     env.MODEL_ARTIFACT = artifact
                 }
@@ -132,7 +136,39 @@ pipeline {
                     echo "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
 
                     INFERENCE_SOURCE_DIR="/tmp/telecom-churn-inference-code-${BUILD_NUMBER}" \
+                    MODEL_ARTIFACT="$MODEL_ARTIFACT" \
                     .venv/bin/python training/sagemaker_model.py
+                '''
+            }
+        }
+
+        stage('Read Model Name') {
+            steps {
+                script {
+                    def modelName = readFile(
+                        file: 'model_name.txt'
+                    ).trim()
+
+                    if (!modelName) {
+                        error 'model_name.txt is empty.'
+                    }
+
+                    echo "SageMaker Model Name:"
+                    echo modelName
+
+                    env.MODEL_NAME = modelName
+                }
+            }
+        }
+
+        stage('Create Endpoint Configuration') {
+            steps {
+                sh '''
+                    echo "AWS Region: $AWS_DEFAULT_REGION"
+                    echo "SageMaker Model Name: $MODEL_NAME"
+
+                    MODEL_NAME="$MODEL_NAME" \
+                    .venv/bin/python training/sagemaker_endpoint_config.py
                 '''
             }
         }
