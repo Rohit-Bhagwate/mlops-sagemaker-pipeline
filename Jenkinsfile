@@ -104,12 +104,34 @@ pipeline {
             }
         }
 
+        stage('Prepare Inference Code') {
+            steps {
+                sh '''
+                    rm -rf "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
+
+                    cp -R \
+                        training/inference_code \
+                        "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
+
+                    echo "Inference code staged at:"
+                    echo "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
+
+                    echo "Contents:"
+                    ls -la "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
+                '''
+            }
+        }
+
         stage('Create SageMaker Model') {
             steps {
                 sh '''
                     echo "AWS Region: $AWS_DEFAULT_REGION"
                     echo "MODEL_ARTIFACT: $MODEL_ARTIFACT"
 
+                    echo "INFERENCE_SOURCE_DIR:"
+                    echo "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
+
+                    INFERENCE_SOURCE_DIR="/tmp/telecom-churn-inference-code-${BUILD_NUMBER}" \
                     .venv/bin/python training/sagemaker_model.py
                 '''
             }
@@ -118,6 +140,7 @@ pipeline {
         stage('Cleanup Temporary Files') {
             steps {
                 sh '''
+                    rm -rf "/tmp/telecom-churn-inference-code-${BUILD_NUMBER}"
                     rm -f model_artifact.txt
                 '''
             }
