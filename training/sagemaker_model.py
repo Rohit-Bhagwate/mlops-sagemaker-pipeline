@@ -98,7 +98,7 @@ print(model)
 # Capture generated SageMaker Model name
 # --------------------------------------------------
 
-model_name = model.name
+model_name = model.model_name
 
 if not model_name:
     raise RuntimeError(
