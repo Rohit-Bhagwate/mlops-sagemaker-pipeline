@@ -1,11 +1,6 @@
+```groovy
 pipeline {
     agent any
-
-    environment {
-        // AWS region is controlled by the Jenkins environment
-        AWS_DEFAULT_REGION = 'ap-south-1'
-        AWS_REGION = 'ap-south-1'
-    }
 
     stages {
 
@@ -17,14 +12,9 @@ pipeline {
 
         stage('Python Verification') {
             steps {
-                sh '''
-                    python3 --version
-                    whoami
-                    pwd
-
-                    echo "AWS Region:"
-                    echo $AWS_DEFAULT_REGION
-                '''
+                sh 'python3 --version'
+                sh 'whoami'
+                sh 'pwd'
             }
         }
 
@@ -53,18 +43,6 @@ pipeline {
                     .venv/bin/python -c "import sagemaker; print('SageMaker SDK imported successfully')"
                     .venv/bin/python -c "import sklearn; print('scikit-learn:', sklearn.__version__)"
                     .venv/bin/python -c "import joblib; print('joblib:', joblib.__version__)"
-                '''
-            }
-        }
-
-        stage('Verify AWS Access') {
-            steps {
-                sh '''
-                    echo "Testing AWS identity..."
-                    aws sts get-caller-identity
-
-                    echo "Testing AWS region..."
-                    aws configure get region || true
                 '''
             }
         }
@@ -101,7 +79,7 @@ pipeline {
             steps {
                 script {
                     env.MODEL_ARTIFACT = readFile(
-                        'model_artifact.txt'
+                        file: 'model_artifact.txt'
                     ).trim()
 
                     echo "Model artifact: ${env.MODEL_ARTIFACT}"
@@ -109,14 +87,53 @@ pipeline {
             }
         }
 
+        stage('Prepare Inference Code') {
+            steps {
+                sh '''
+                    echo "Preparing inference code outside Jenkins workspace..."
+
+                    rm -rf /tmp/telecom-churn-inference-code
+
+                    cp -R training/inference_code \
+                        /tmp/telecom-churn-inference-code
+
+                    echo "Inference code prepared at:"
+                    ls -la /tmp/telecom-churn-inference-code
+                '''
+            }
+        }
+
         stage('Build SageMaker Model') {
             steps {
                 sh '''
-                    echo "Building SageMaker model..."
+                    export MODEL_ARTIFACT="${MODEL_ARTIFACT}"
+                    export INFERENCE_SOURCE_DIR="/tmp/telecom-churn-inference-code"
+
+                    echo "Model artifact:"
+                    echo "${MODEL_ARTIFACT}"
+
+                    echo "Inference source directory:"
+                    echo "${INFERENCE_SOURCE_DIR}"
 
                     .venv/bin/python training/sagemaker_model.py
                 '''
             }
         }
+
+        stage('Cleanup Temporary Files') {
+            steps {
+                sh '''
+                    rm -rf /tmp/telecom-churn-inference-code
+                    echo "Temporary inference directory cleaned."
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Pipeline execution completed.'
+        }
     }
 }
+```
