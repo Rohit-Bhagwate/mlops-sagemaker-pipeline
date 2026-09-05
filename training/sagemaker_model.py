@@ -54,10 +54,15 @@ image = image_uris.retrieve(
 print("Inference image:")
 print(image)
 
-source_dir = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "inference_code"
-)
+source_dir = os.getenv("INFERENCE_SOURCE_DIR")
+
+if not source_dir:
+    raise RuntimeError(
+        "INFERENCE_SOURCE_DIR environment variable is not set."
+    )
+
+print("Inference source directory:", source_dir)
+
 source_code = SourceCode(
     source_dir=source_dir,
     entry_script="inference.py"
