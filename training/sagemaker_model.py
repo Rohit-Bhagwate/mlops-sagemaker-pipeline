@@ -30,7 +30,6 @@ INSTANCE_TYPE = "ml.m5.large"
 # --------------------------------------------------
 
 boto_session = boto3.Session(
-    #profile_name="mlops-engineer",
     region_name=REGION
 )
 
@@ -54,6 +53,11 @@ image = image_uris.retrieve(
 print("Inference image:")
 print(image)
 
+
+# --------------------------------------------------
+# Inference source code
+# --------------------------------------------------
+
 source_dir = os.getenv("INFERENCE_SOURCE_DIR")
 
 if not source_dir:
@@ -67,6 +71,8 @@ source_code = SourceCode(
     source_dir=source_dir,
     entry_script="inference.py"
 )
+
+
 # --------------------------------------------------
 # Build SageMaker Model
 # --------------------------------------------------
@@ -86,3 +92,28 @@ model = model_builder.build()
 
 print("SageMaker Model created successfully.")
 print(model)
+
+
+# --------------------------------------------------
+# Capture generated SageMaker Model name
+# --------------------------------------------------
+
+model_name = model.name
+
+if not model_name:
+    raise RuntimeError(
+        "SageMaker Model was created, but its name could not be determined."
+    )
+
+print("Generated SageMaker Model name:")
+print(model_name)
+
+
+# --------------------------------------------------
+# Save model name for next Jenkins stage
+# --------------------------------------------------
+
+with open("model_name.txt", "w") as file:
+    file.write(model_name)
+
+print("Model name saved to model_name.txt")
