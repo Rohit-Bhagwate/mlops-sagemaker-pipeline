@@ -71,6 +71,9 @@ pipeline {
                     echo "Checking test input JSON:"
                     test -f training/test_input.json
 
+                    echo "Checking endpoint test script:"
+                    test -f training/test_endpoint.py
+
                     echo "Checking inference code:"
                     test -f training/inference_code/inference.py
 
@@ -203,6 +206,82 @@ pipeline {
 
                     ENDPOINT_CONFIG_NAME="$ENDPOINT_CONFIG_NAME" \
                     .venv/bin/python training/sagemaker_endpoint.py
+                '''
+            }
+        }
+
+        stage('Wait for Endpoint InService') {
+            steps {
+                sh '''
+                    echo "Waiting for SageMaker Endpoint to become InService..."
+
+                    .venv/bin/python - <<'PY'
+import boto3
+import os
+import time
+import sys
+
+region = os.environ["AWS_DEFAULT_REGION"]
+endpoint_name = "telecom-churn-endpoint"
+
+session = boto3.Session(region_name=region)
+sagemaker = session.client("sagemaker")
+
+max_attempts = 60
+wait_seconds = 30
+
+for attempt in range(1, max_attempts + 1):
+
+    response = sagemaker.describe_endpoint(
+        EndpointName=endpoint_name
+    )
+
+    status = response["EndpointStatus"]
+
+    print(
+        f"Attempt {attempt}/{max_attempts} - "
+        f"Endpoint status: {status}"
+    )
+
+    if status == "InService":
+        print()
+        print("SageMaker Endpoint is InService.")
+        sys.exit(0)
+
+    if status in ["Failed", "OutOfService"]:
+        print()
+        print(
+            "SageMaker Endpoint entered a failure state:"
+        )
+        print(status)
+
+        failure_reason = response.get(
+            "FailureReason",
+            "No failure reason provided."
+        )
+
+        print("Failure reason:")
+        print(failure_reason)
+
+        sys.exit(1)
+
+    time.sleep(wait_seconds)
+
+print()
+print("Timed out waiting for SageMaker Endpoint.")
+sys.exit(1)
+PY
+                '''
+            }
+        }
+
+        stage('Test SageMaker Endpoint') {
+            steps {
+                sh '''
+                    echo "Testing live SageMaker Endpoint..."
+
+                    ENDPOINT_NAME="telecom-churn-endpoint" \
+                    .venv/bin/python training/test_endpoint.py
                 '''
             }
         }
